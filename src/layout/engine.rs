@@ -26,46 +26,46 @@ pub fn layout(nodes: &[ParseNode], config: LayoutSettings) -> Layout {
 #[allow(unconditional_recursion)]
 fn layout_recurse(nodes: &[ParseNode],
                   mut config: LayoutSettings,
-                  parent_next: AtomType)
+                  parent_next_atom_type: AtomType)
                   -> Layout {
     let mut result = Layout::new();
-    let mut prev = AtomType::Transparent;
+    let mut prev_atom_type = AtomType::Transparent;
 
     for idx in 0..nodes.len() {
         let node = &nodes[idx];
+        let mut current_atom_type = node.atom_type();
 
         // To determine spacing between glyphs, we look at each pair and their types.
         // Obtain the atom_type from the next node,  if we are the last in the node
         // list then we obtain the atomtype from the next node in parent's list.
-        let next = match nodes.get(idx + 1) {
+        let next_atom_type = match nodes.get(idx + 1) {
             Some(node) => node.atom_type(),
-            None => parent_next,
+            None => parent_next_atom_type,
         };
 
-        let mut current = node.atom_type();
-        if current == AtomType::Binary {
-            if prev == AtomType::Transparent || prev == AtomType::Binary ||
-               prev == AtomType::Relation || prev == AtomType::Open ||
-               prev == AtomType::Punctuation {
-                current = AtomType::Alpha;
-            } else if let AtomType::Operator(_) = prev {
-                current = AtomType::Alpha;
-            } else if next == AtomType::Relation || next == AtomType::Close ||
-                      next == AtomType::Punctuation {
-                current = AtomType::Alpha;
+        if current_atom_type == AtomType::Binary {
+            if prev_atom_type == AtomType::Transparent || prev_atom_type == AtomType::Binary ||
+               prev_atom_type == AtomType::Relation || prev_atom_type == AtomType::Open ||
+               prev_atom_type == AtomType::Punctuation {
+                current_atom_type = AtomType::Alpha;
+            } else if let AtomType::Operator(_) = prev_atom_type {
+                current_atom_type = AtomType::Alpha;
+            } else if next_atom_type == AtomType::Relation || next_atom_type == AtomType::Close ||
+                      next_atom_type == AtomType::Punctuation {
+                current_atom_type = AtomType::Alpha;
             }
         }
 
-        let sp = atom_space(prev, current, config.style);
+        let sp = atom_space(prev_atom_type, current_atom_type, config.style);
         if sp != Spacing::None {
             let kern = sp.to_unit().scaled(config);
             result.add_node(kern!(horz: kern));
         }
 
-        prev = current;
+        prev_atom_type = current_atom_type;
         match *node {
             ParseNode::Style(sty) => config.style = sty,
-            _ => dispatch(&mut result, config, node, next),
+            _ => dispatch(&mut result, config, node, next_atom_type),
         }
     }
 
@@ -78,7 +78,7 @@ fn layout_node(node: &ParseNode, config: LayoutSettings) -> Layout {
     result.finalize()
 }
 
-fn dispatch(lay: &mut Layout, config: LayoutSettings, node: &ParseNode, next: AtomType) {
+fn dispatch(lay: &mut Layout, config: LayoutSettings, node: &ParseNode, atom_type: AtomType) {
     match *node {
         ParseNode::Symbol(sym) => symbol(lay, sym, config),
         ParseNode::Scripts(ref script) => scripts(lay, script, config),
@@ -95,7 +95,7 @@ fn dispatch(lay: &mut Layout, config: LayoutSettings, node: &ParseNode, next: At
         ParseNode::Kerning(kern) => lay.add_node(kern!(horz: kern.scaled(config))),
 
         ParseNode::Color(ref clr) => {
-            let inner = layout_recurse(&clr.inner, config, next);
+            let inner = layout_recurse(&clr.inner, config, atom_type);
             lay.add_node(color!(inner, clr))
         }
 
