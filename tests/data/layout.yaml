@@ -103,6 +103,10 @@ Accents:
     Snippets:
     - \`o\'o\^o\"o\~o\.o
 
+  - Description: should render a tensor double arrow correctly
+    Snippets:
+    - \overleftrightarrow{T}
+
 Radicals:
   - Description: should properly scale
     Snippets:

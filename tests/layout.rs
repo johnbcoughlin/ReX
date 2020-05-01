@@ -97,9 +97,16 @@ fn equation_diffs(old: &[Equation], new: &[Equation]) -> Vec<(Equation, Equation
 
 #[test]
 fn layout() {
+    use common::svg;
+
     let tests = collect_tests(LAYOUT_YAML);
     let rendered = render_tests(tests);
+
+    svg::write(LAYOUT_HTML, &rendered);
+
+
     let history = load_history(LAYOUT_BINCODE);
+
     let diff = equation_diffs(&history, &rendered);
 
     if diff.len() != 0 {
